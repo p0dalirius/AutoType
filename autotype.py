@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# File name          : ldapsearch.py
+# File name          : autotype.py
 # Author             : Podalirius (@podalirius_)
-# Date created       : 29 Jul 2021
+# Date created       : 30 Jan 2025
 
 
 import argparse
@@ -27,6 +27,7 @@ pVpAblF9AokWkAAAAAAAAABWaAGFBXEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADQA0y9
 rweYel8psD8BqAjj35vV+/MbeFZFRERDV/z5F2EMeENpAAAAAElFTkSuQmCC
 """
 
+banner = "AutoType - v1.2 - by Remi GASCOU (Podalirius)"
 
 def wait_seconds(seconds):
     """
@@ -64,7 +65,7 @@ def window_gui():
         def __init__(self):
             super().__init__()
             
-            self.font_size = 20
+            self.font_size = 17
             self.chars_per_second = 100
             self.current_cursor_position = None
 
@@ -80,7 +81,8 @@ def window_gui():
             """
             Sets up the UI of the main window.
             """
-            self.setWindowTitle("AutoType - v1.1 - by Remi GASCOU (Podalirius)")
+            global banner
+            self.setWindowTitle(banner)
             self.setGeometry(100, 100, 600, 400)
 
             # Create central widget and layout
@@ -342,6 +344,7 @@ if __name__ == "__main__":
     options.interval = options.interval / 1000
 
     if options.stdin is not None:
+        print(banner+"\n")
         print("[>] Reading from stdin")
         while True:
             data = input("> ")
@@ -350,6 +353,7 @@ if __name__ == "__main__":
                 pyautogui.write(data, interval=options.interval)
 
     elif options.input_file is not None:
+        print(banner+"\n")
         print(f"[>] Reading from file: {options.input_file}")
         with open(options.input_file, "r") as f:
             data = f.read()
