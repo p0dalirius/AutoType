@@ -65,14 +65,15 @@ def window_gui():
             super().__init__()
             
             self.font_size = 20
-            self.delay_before_start = 0
+            self.chars_per_second = 100
             self.current_cursor_position = None
 
             self.state = State.IDLE
 
             self.timer = QTimer(self)   
             self.timer.timeout.connect(self.action_timer_update)
-
+            self.timer.start(100)
+            
             self.setup_ui()
         
         def setup_ui(self):
@@ -130,16 +131,16 @@ def window_gui():
             delay_layout.addWidget(delay_label)
             delay_layout.addWidget(self.delay_input)
             config_layout.addLayout(delay_layout)
-            # Create interval input with label
-            interval_layout = QHBoxLayout()
-            interval_label = QLabel("Interval:")
-            self.interval_input = QSpinBox()
-            self.interval_input.setRange(0, 1000)
-            self.interval_input.setValue(50)
-            self.interval_input.setSuffix(" ms")
-            interval_layout.addWidget(interval_label)
-            interval_layout.addWidget(self.interval_input)
-            config_layout.addLayout(interval_layout)
+            # Create chars per sec input with label
+            chars_per_sec_layout = QHBoxLayout()
+            chars_per_sec_label = QLabel("Speed:")
+            self.chars_per_sec_input = QSpinBox()
+            self.chars_per_sec_input.setRange(1, 99999)
+            self.chars_per_sec_input.setValue(20)
+            self.chars_per_sec_input.setSuffix(" chars/sec")
+            chars_per_sec_layout.addWidget(chars_per_sec_label)
+            chars_per_sec_layout.addWidget(self.chars_per_sec_input)
+            config_layout.addLayout(chars_per_sec_layout)
             # add this to the final layout
             layout.addLayout(config_layout)
 
@@ -172,7 +173,6 @@ def window_gui():
             """
             Updates the UI based on the current state of the application.
             """
-            print("action_timer_update")
             if self.state == State.IDLE:
                 self.start_button.setText(f"Start typing")
                 self.cancel_button.setEnabled(False)
@@ -200,8 +200,11 @@ def window_gui():
                     else:
                         text = self.text_edit.toPlainText()
                         if text:
-                            pyautogui.write(text[0])
-                            self.text_edit.setPlainText(text[1:])
+                            timer_interval_seconds = self.timer.interval()/1000
+                            nbchars = int(self.chars_per_sec_input.value()/timer_interval_seconds)
+                            interval_between_chars = timer_interval_seconds/nbchars
+                            pyautogui.write(text[:nbchars], interval=interval_between_chars)
+                            self.text_edit.setPlainText(text[nbchars:])
                         else:
                             self.state = State.CANCELLED
                             self.start_button.setEnabled(True)
@@ -218,9 +221,6 @@ def window_gui():
             """
             Starts the typing process.
             """
-            self.timer.stop()
-            self.timer.start(self.interval_input.value())
-
             self.delay_before_start = self.delay_input.value()
             self.state = State.WAITING
 
