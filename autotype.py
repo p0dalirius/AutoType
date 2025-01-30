@@ -63,15 +63,17 @@ def window_gui():
         """
         def __init__(self):
             super().__init__()
-            self.setup_ui()
-
-            self.timer = QTimer(self)   
-            self.timer.timeout.connect(self.action_timer_update)  
-            self.timer.start(100)
-
+            
+            self.font_size = 20
             self.delay_before_start = 0
+            self.current_cursor_position = None
 
             self.state = State.IDLE
+
+            self.timer = QTimer(self)   
+            self.timer.timeout.connect(self.action_timer_update)
+
+            self.setup_ui()
         
         def setup_ui(self):
             """
@@ -89,15 +91,8 @@ def window_gui():
             scroll_area = QScrollArea()
             scroll_area.setWidgetResizable(True)
             self.text_edit = QTextEdit()
-            self.text_edit.setAcceptRichText(False)
-            self.text_edit.setStyleSheet("""
-                QTextEdit {
-                    background-color: #1f1f1f;
-                    color: #cfcfcf;
-                    font-size: 20px;
-                    font-family: Consolas;
-                }
-            """)
+            self.text_edit.setAcceptRichText(False)           
+            self.update_text_edit_style(self.font_size)
             scroll_area.setWidget(self.text_edit)
             layout.addWidget(scroll_area)
 
@@ -160,14 +155,24 @@ def window_gui():
             button_layout.addWidget(self.cancel_button)
             layout.addLayout(button_layout)
 
-            # Create a keyboard shortcut for canceling
+            # Create keyboard shortcuts
+            self.shortcut = QShortcut(QKeySequence("Ctrl+Enter"), self)
+            self.shortcut.activated.connect(self.action_start_typing)
+
             self.shortcut = QShortcut(QKeySequence("Ctrl+C"), self)
             self.shortcut.activated.connect(self.action_cancel_typing)
+
+            self.shortcut = QShortcut(QKeySequence("Ctrl++"), self)
+            self.shortcut.activated.connect(self.action_zoom_in)
+
+            self.shortcut = QShortcut(QKeySequence("Ctrl+-"), self)
+            self.shortcut.activated.connect(self.action_zoom_out)
 
         def action_timer_update(self):
             """
             Updates the UI based on the current state of the application.
             """
+            print("action_timer_update")
             if self.state == State.IDLE:
                 self.start_button.setText(f"Start typing")
                 self.cancel_button.setEnabled(False)
@@ -181,20 +186,27 @@ def window_gui():
                     self.start_button.setText("Typing ...")
                     self.cancel_button.setEnabled(True)
                     self.cancel_button.show()
+                    self.current_cursor_position = pyautogui.position()
 
             elif self.state == State.TYPING:
-                self.start_button.setText("Typing ...")
-                self.cancel_button.setEnabled(True)
-                self.cancel_button.show()
-                text = self.text_edit.toPlainText()
-                if text:
-                    pyautogui.write(text[0], interval=self.interval_input.value()/1000)
-                    self.text_edit.setPlainText(text[1:])
+                if self.current_cursor_position is None:
+                    self.current_cursor_position = pyautogui.position()
                 else:
-                    self.state = State.CANCELLED
-                    self.start_button.setEnabled(True)
-                    self.cancel_button.setEnabled(False)
-                    self.cancel_button.hide()
+                    curpos = pyautogui.position()
+                    if curpos.x != self.current_cursor_position.x or curpos.y != self.current_cursor_position.y:
+                        self.current_cursor_position = curpos
+                        self.delay_before_start = self.delay_input.value()
+                        self.state = State.WAITING
+                    else:
+                        text = self.text_edit.toPlainText()
+                        if text:
+                            pyautogui.write(text[0])
+                            self.text_edit.setPlainText(text[1:])
+                        else:
+                            self.state = State.CANCELLED
+                            self.start_button.setEnabled(True)
+                            self.cancel_button.setEnabled(False)
+                            self.cancel_button.hide()
 
             elif self.state == State.CANCELLED:
                 self.start_button.setEnabled(True)
@@ -206,6 +218,9 @@ def window_gui():
             """
             Starts the typing process.
             """
+            self.timer.stop()
+            self.timer.start(self.interval_input.value())
+
             self.delay_before_start = self.delay_input.value()
             self.state = State.WAITING
 
@@ -279,6 +294,24 @@ def window_gui():
                             self.text_edit.setText(file.read())
                 except Exception as e:
                     QMessageBox.critical(self, "Error", f"Could not load file: {str(e)}")
+
+        def action_zoom_in(self):
+            self.update_text_edit_style(self.font_size+1) 
+
+        def action_zoom_out(self):
+            self.update_text_edit_style(self.font_size-1) 
+
+        def update_text_edit_style(self, value):
+            self.font_size = max(value, 1)
+            self.text_edit.setStyleSheet("""
+                QTextEdit {
+                    background-color: #1f1f1f;
+                    color: #cfcfcf;
+                    font-size: %dpx;
+                    font-family: Consolas;
+                }
+            """ % self.font_size)
+            self.text_edit.update()
 
     app = QApplication([])
     window = MainWindow()
