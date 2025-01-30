@@ -43,7 +43,7 @@ $ ./autotype.py --gui
 
 ## Usage
 
-```bash
+```
 $ ./autotype.py -h
 usage: autotype.py [-h] (--stdin | --file INPUT_FILE | --gui) [--delay DELAY] [--interval INTERVAL]
 
